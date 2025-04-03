@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'landing_page.dart';
 import 'login.dart';
+import 'home_page.dart';
 import 'create_account.dart';
 // Import the LandingPage file
 
@@ -17,7 +18,8 @@ class MyApp extends StatelessWidget {
     routes: {
       '/login' : (context) => LoginPage(),
       '/createAccount' : (context) => CreateAccountPage(),
-      '/landing' : (context) => LandingPage()
+      '/landing' : (context) => LandingPage(),
+      '/home' : (context) => HomePage(),
     },
       title: 'My SKULD App',
       theme: ThemeData(
