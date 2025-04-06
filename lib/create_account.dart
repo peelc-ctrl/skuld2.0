@@ -64,7 +64,13 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Create Account")),
+      appBar: AppBar(title: Text("Create Account"),
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back),
+        onPressed: () {
+          Navigator.pop(context); // Go back to the previous screen
+        },
+      ),),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Form(

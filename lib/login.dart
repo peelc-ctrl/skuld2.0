@@ -31,7 +31,8 @@ class _LoginPageState extends State<LoginPage> {
       }),
     );
 
-    if (response.statusCode == 200) {
+  //UNCOMMENT WHEN DONE WITH TESTING 
+   if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString("access_token", data["access"]);
@@ -56,7 +57,14 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Login")),
+      appBar: AppBar(title: Text("Login"),
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back),
+        onPressed: () {
+          Navigator.pop(context);
+        },
+      ),
+      ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
@@ -84,13 +92,16 @@ class _LoginPageState extends State<LoginPage> {
             _isLoading
                 ? CircularProgressIndicator()
                 : ElevatedButton(
-                    onPressed: _login,
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(context, '/home');
+                    },
+                    //onPressed: _login,
                     child: Text("Login"),
                   ),
             SizedBox(height: 10),
             TextButton(
               onPressed: () {
-                Navigator.pushNamed(context, "/register");
+                Navigator.pushNamed(context, "/createAccount");
               },
               child: Text("Create an account"),
             ),
