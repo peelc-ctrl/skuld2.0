@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 
 class MosaicBackground extends StatefulWidget {
+  const MosaicBackground({super.key});
+
   @override
   _MosaicBackgroundState createState() => _MosaicBackgroundState();
 }

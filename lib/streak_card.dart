@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AnimatedStreakCard extends StatefulWidget {
   final int streakCount;
 
-  const AnimatedStreakCard({Key? key, required this.streakCount}) : super(key: key);
+  const AnimatedStreakCard({super.key, required this.streakCount});
 
   @override
   _AnimatedStreakCardState createState() => _AnimatedStreakCardState();

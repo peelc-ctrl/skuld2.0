@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'auth_service.dart'; //authentication service I created
 import 'stats_page.dart';
-import 'leaderboard.dart';
 import 'profile.dart';
 import 'friend_feed.dart';
 import 'streak_card.dart';
+import 'create_workout.dart';
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -36,7 +38,7 @@ class _HomePageState extends State<HomePage> {
 
 List<Widget> get _pages {
   return [ 
-    LeaderboardPage(),
+    
     FriendsFeedPage(),
     Center(
       child: Column(
@@ -57,6 +59,8 @@ List<Widget> get _pages {
           ElevatedButton.icon(
             onPressed: (){
               //add action here!
+              Navigator.push(context, MaterialPageRoute(builder: (context) => AddWorkoutPage()));
+
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color.fromARGB(255, 93, 0, 100),
