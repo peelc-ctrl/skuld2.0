@@ -26,7 +26,8 @@ SECRET_KEY = 'django-insecure-31+&mmfkrgs-sq5px%k4qgmgsm95hu^lt9b9db7y4f5%ompv%2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+## DELETE WHEN DONE: 192.168.1.84 - IPV4 ADDRESS
 
 
 # Application definition
@@ -52,7 +53,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "corsheaders.middleware.CorsMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'main.urls'

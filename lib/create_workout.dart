@@ -59,7 +59,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage> {
   }
 
 void _submitWorkout() async {
-  final url = Uri.parse('http://<YOUR-DJANGO-IP>:8000/api/workouts/');
+  final url = Uri.parse('http://192.168.1.84:8000/api/workouts/');
 
   final workoutData = {
     "date": _workoutDate.toIso8601String(),

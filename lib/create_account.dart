@@ -6,128 +6,122 @@ class CreateAccountPage extends StatefulWidget {
   const CreateAccountPage({super.key});
 
   @override
-  _CreateAccountPageState createState() => _CreateAccountPageState();
+  State<CreateAccountPage> createState() => _CreateAccountPageState();
 }
 
 class _CreateAccountPageState extends State<CreateAccountPage> {
   final _formKey = GlobalKey<FormState>();
-  TextEditingController firstNameController = TextEditingController();
-  TextEditingController lastNameController = TextEditingController();
-  TextEditingController emailController = TextEditingController();
-  TextEditingController usernameController = TextEditingController();
-  TextEditingController dobController = TextEditingController();
-  TextEditingController heightController = TextEditingController();
-  TextEditingController weightController = TextEditingController();
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final password2Controller = TextEditingController(); // Password confirmation
+  final tcController = TextEditingController(); // Terms and conditions
 
-  Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      // API endpoint URL (replace with your Django server URL)
-      String url = "http://127.0.0.1:8000/api/register/";
+  bool _termsAccepted = false; // To check if terms are accepted
 
-      // Prepare data to send
-      Map<String, String> formData = {
-        "first_name": firstNameController.text,
-        "last_name": lastNameController.text,
-        "email": emailController.text,
-        "username": usernameController.text,
-        "dob": dobController.text,
-        "height": heightController.text.isNotEmpty ? heightController.text : "0",
-        "weight": weightController.text.isNotEmpty ? weightController.text : "0",
-      };
+  Future<void> _register() async {
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        var response = await http.post(
-          Uri.parse(url),
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode(formData),
-        );
+    final url = Uri.parse("http://127.0.0.1:8000/api/register/");
+    print("Attempting registration...");
 
-        if (response.statusCode == 201) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Account Created Successfully!")),
-          );
-          Navigator.pushNamed(context, '/login'); // Redirect to login page
-        } else {
-          var error = jsonDecode(response.body);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error: ${error['error']}")),
-          );
-        }
-      } catch (e) {
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "name": nameController.text,
+          "email": emailController.text,
+          "password": passwordController.text,
+          "password2": password2Controller.text,
+          "tc": _termsAccepted ? "accepted" : "not_accepted",
+        }),
+      );
+
+      print("Status: ${response.statusCode}");
+      print("Body: ${response.body}");
+
+      if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Network Error: Unable to connect to server")),
+          SnackBar(content: Text("Account created")),
+        );
+        Navigator.pushNamed(context, '/login');
+      } else {
+        final data = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['error'] ?? "Registration failed")),
         );
       }
+    } catch (e) {
+      print("Error during registration: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Connection error")),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Create Account"),
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back),
-        onPressed: () {
-          Navigator.pop(context); // Go back to the previous screen
-        },
-      ),),
+      appBar: AppBar(title: Text("Create Account")),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              TextFormField(
-                controller: firstNameController,
-                decoration: InputDecoration(labelText: "First Name"),
-                validator: (value) => value!.isEmpty ? "First Name is required" : null,
-              ),
-              TextFormField(
-                controller: lastNameController,
-                decoration: InputDecoration(labelText: "Last Name"),
-                validator: (value) => value!.isEmpty ? "Last Name is required" : null,
-              ),
+              // Email Field
               TextFormField(
                 controller: emailController,
                 decoration: InputDecoration(labelText: "Email"),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value!.isEmpty) return "Email is required";
-                  if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").hasMatch(value)) {
-                    return "Enter a valid email";
-                  }
+                validator: (v) => v!.isEmpty ? "Email is required" : null,
+              ),
+
+              // Name Field
+              TextFormField(
+                controller: nameController,
+                decoration: InputDecoration(labelText: "Full Name"),
+                validator: (v) => v!.isEmpty ? "Name is required" : null,
+              ),
+
+              // Password Field
+              TextFormField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(labelText: "Password"),
+                validator: (v) => v!.length < 6 ? "Password too short" : null,
+              ),
+
+              // Confirm Password Field (password2)
+              TextFormField(
+                controller: password2Controller,
+                obscureText: true,
+                decoration: InputDecoration(labelText: "Confirm Password"),
+                validator: (v) {
+                  if (v!.isEmpty) return "Please confirm your password";
+                  if (v != passwordController.text) return "Passwords do not match";
                   return null;
                 },
               ),
-              TextFormField(
-                controller: usernameController,
-                decoration: InputDecoration(labelText: "Username"),
-                validator: (value) => value!.isEmpty ? "Username is required" : null,
+
+              // Terms and Conditions Checkbox
+              Row(
+                children: [
+                  Checkbox(
+                    value: _termsAccepted,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _termsAccepted = value ?? false;
+                      });
+                    },
+                  ),
+                  Text("I accept the Terms and Conditions"),
+                ],
               ),
-              TextFormField(
-                controller: dobController,
-                decoration: InputDecoration(
-                  labelText: "Date of Birth",
-                  hintText: "YYYY-MM-DD",
-                ),
-                keyboardType: TextInputType.datetime,
-                validator: (value) => value!.isEmpty ? "Date of Birth is required" : null,
-              ),
-              TextFormField(
-                controller: heightController,
-                decoration: InputDecoration(labelText: "Height (Optional)"),
-                keyboardType: TextInputType.number,
-              ),
-              TextFormField(
-                controller: weightController,
-                decoration: InputDecoration(labelText: "Weight (Optional)"),
-                keyboardType: TextInputType.number,
-              ),
+
               SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _submitForm,
-                child: Text("Create Account"),
-              ),
+
+              ElevatedButton(onPressed: _register, child: Text("Create Account")),
             ],
           ),
         ),

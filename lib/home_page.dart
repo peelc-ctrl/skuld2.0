@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:skuld/leaderboard.dart';
 import 'auth_service.dart'; //authentication service I created
 import 'stats_page.dart';
 import 'profile.dart';
@@ -19,6 +20,7 @@ class _HomePageState extends State<HomePage> {
 
   //getting the user's name from the database, might change to username
   String firstName = '';
+  String userName = '';
   bool isLoading = true;
   @override
   void initState() {
@@ -30,7 +32,7 @@ class _HomePageState extends State<HomePage> {
     final profile = await AuthService().getUserProfile();
     setState(() {
       if (profile != null){
-        firstName = profile['first_name'] ?? 'Freya'; //creates a fallback name if profile not loaded or entered
+        firstName = profile['first_name'] ?? 'Freya';
       }
       isLoading = false;
     });
@@ -39,13 +41,14 @@ class _HomePageState extends State<HomePage> {
 List<Widget> get _pages {
   return [ 
     
+    LeaderboardPage(currentUsername: firstName),
     FriendsFeedPage(),
     Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'Hello, Dress2Imprez69!', //change to $firstName when backend connected
+            firstName, //change to $firstName when backend connected
             style: GoogleFonts.germaniaOne(
               textStyle: TextStyle(fontSize: 30, color: Colors.white))
           ),

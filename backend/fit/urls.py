@@ -1,3 +1,4 @@
+from . import views
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
@@ -38,7 +39,10 @@ urlpatterns = [
     path('challenges/', ChallengeView.as_view(), name='challenges'),
     path('analytics/', AnalyticsView.as_view(), name='analytics'),
     path('', include(router.urls)),
+
+    path('', views.home, name='home'), 
 ]
+
 
 # Serve media files during development
 if settings.DEBUG:

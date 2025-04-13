@@ -3,15 +3,17 @@ import 'landing_page.dart';
 import 'login.dart';
 import 'home_page.dart';
 import 'create_account.dart';
-// Import the LandingPage file
+ 
 
 void main() {
   runApp(MyApp());
 }
 
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
+  
+ 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -19,7 +21,7 @@ class MyApp extends StatelessWidget {
       '/login' : (context) => LoginPage(),
       '/createAccount' : (context) => CreateAccountPage(),
       '/landing' : (context) => LandingPage(),
-      '/home' : (context) => HomePage(),
+      '/home' : (context) => HomePage()
     },
       title: 'My SKULD App',
       theme: ThemeData(

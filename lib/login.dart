@@ -21,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
       _isLoading = true;
     });
 
-    final url = Uri.parse("http://localhost:8000/api/token/");
+    final url = Uri.parse("http://192.168.1.84:8000/api/token/");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},

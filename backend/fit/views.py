@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
@@ -23,7 +24,8 @@ def get_tokens_for_user(user):
         'refresh': str(refresh),
         'access': str(refresh.access_token),
     }
-
+def home(request):
+    return HttpResponse("Welcome to the homepage!")
 # Authentication Views
 class UserRegistrationView(APIView):
     renderer_classes = [UserRenderer]
