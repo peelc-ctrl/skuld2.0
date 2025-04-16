@@ -5,8 +5,10 @@ import 'auth_service.dart'; //authentication service I created
 import 'stats_page.dart';
 import 'profile.dart';
 import 'friend_feed.dart';
+import 'package:intl/intl.dart';
 import 'streak_card.dart';
 import 'create_workout.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,90 +19,112 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 2; // Default to Home
-
-  //getting the user's name from the database, might change to username
-  String firstName = '';
-  String userName = '';
+  String username = '';
+  int streak = 0;
+  int longest_streak = 0;
   bool isLoading = true;
+  String token = '';
+  int completedDays = 0; // Variable to track completed days
+  int totalDaysInWeek = 7;
+  String progressMessage = '';
+
   @override
   void initState() {
     super.initState();
     _fetchUserProfile();
+    _loadCompletedDays();
+    _setProgressMessage();
   }
-  //getting the user's profile data
+
+  // This will fetch user data (profile)
   void _fetchUserProfile() async {
-    final profile = await AuthService().getUserProfile();
     setState(() {
-      if (profile != null){
-        firstName = profile['first_name'] ?? 'Freya';
-      }
-      isLoading = false;
+      isLoading = true;
+    });
+
+    final profile = await AuthService().getUserProfile();
+    if (profile != null) {
+      setState(() {
+        username = profile['username'] ?? '';
+        streak = profile['current_streak'] ?? 0;
+        longest_streak = profile['longest_streak'] ?? 0;
+        isLoading = false;
+        token = profile['access_token'] ?? ''; // Store the token for later use
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  // Load the number of completed days from SharedPreferences
+  void _loadCompletedDays() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      completedDays = prefs.getInt('completedDays') ?? 0; // Get saved completed days
     });
   }
 
-List<Widget> get _pages {
-  return [ 
-    
-    LeaderboardPage(currentUsername: firstName),
-    FriendsFeedPage(),
-    Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            firstName, //change to $firstName when backend connected
-            style: GoogleFonts.germaniaOne(
-              textStyle: TextStyle(fontSize: 30, color: Colors.white))
-          ),
-          Text(
-            '5 of 7 days done this week!',  //dynamically load
-            style:TextStyle(fontSize: 15, color: Colors.white)
-          ),
+  // Save completed days to SharedPreferences
+  void _saveCompletedDays(int days) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setInt('completedDays', days); // Save the new value
+  }
 
-          const SizedBox(height: 20),
+  // Update the progress message based on completed days
+  void _setProgressMessage() {
+    progressMessage = 'SKOL!! $completedDays of $totalDaysInWeek days done this week!';
+  }
 
-          ElevatedButton.icon(
-            onPressed: (){
-              //add action here!
-              Navigator.push(context, MaterialPageRoute(builder: (context) => AddWorkoutPage()));
-
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color.fromARGB(255, 93, 0, 100),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+  // List of pages for BottomNavigationBar
+  List<Widget> get _pages {
+    return [
+      LeaderboardPage(),
+      FindFriendsPage(),
+      Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Welcome, $username!',
+              style: GoogleFonts.germaniaOne(
+                textStyle: TextStyle(fontSize: 30, color: Colors.white),
+              ),
             ),
-            label: const Text(
-              'LOG WORKOUT',
-              style: TextStyle(fontSize: 20, color: Colors.white)
+            Text(
+              progressMessage, // Dynamically loaded progress message
+              style: TextStyle(fontSize: 15, color: Colors.white),
             ),
-            icon: Icon(Icons.fitness_center_rounded, color: Colors.white, size: 30),
-          ),
-
-          const SizedBox(height: 10),
-
-          ElevatedButton.icon(
-            onPressed: (){
-              //add action here!
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color.fromARGB(255, 93, 0, 100),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => CreateWorkoutPage()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromARGB(255, 93, 0, 100),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              label: const Text(
+                'LOG WORKOUT',
+                style: TextStyle(fontSize: 20, color: Colors.white),
+              ),
+              icon: Icon(Icons.fitness_center_rounded, color: Colors.white, size: 30),
             ),
-            label: const Text(
-              'LOG A REST DAY',
-              style: TextStyle(fontSize: 20, color: Colors.white)
-            ),
-            icon: Icon(Icons.bed_rounded, color: Colors.white, size: 30),
-          ),
-          AnimatedStreakCard(streakCount: 420), //replace with call to database
-        ],
-
+            const SizedBox(height: 10),
+            AnimatedStreakCard(streakCount: streak, longestStreak: longest_streak),
+          ],
+        ),
       ),
-    ),
-    StatsPage(),
-    ProfilePage(),
-  ];
-}
+      StatsPage(),
+      ProfilePage(),
+    ];
+  }
+
+  // Handle Bottom Navigation item taps
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -116,24 +140,23 @@ List<Widget> get _pages {
         title: Text(
           'SKULD',
           style: GoogleFonts.germaniaOne(
-            textStyle: TextStyle(fontSize: 45, color: Color.fromARGB(179, 219, 204, 229)),)
+            textStyle: TextStyle(fontSize: 45, color: Color.fromARGB(179, 219, 204, 229)),
           ),
-          
-        automaticallyImplyLeading: false, //makes the add button first and no back
+        ),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: Icon(Icons.add),
-            onPressed:() {
-              //add action to go to create a workout or log 
-              //workout
+            onPressed: () {
+              // Add action for workout creation
             },
-              color: Color.fromARGB(179, 219, 204, 229)
-            ),
-        ]
+            color: Color.fromARGB(179, 219, 204, 229),
+          ),
+        ],
       ),
       body: isLoading
-        ? Center(child: CircularProgressIndicator())
-        : _pages[_selectedIndex], // Use the selected page
+          ? Center(child: CircularProgressIndicator())
+          : _pages[_selectedIndex], // Use the selected page
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         items: const <BottomNavigationBarItem>[

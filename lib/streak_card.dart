@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class AnimatedStreakCard extends StatefulWidget {
   final int streakCount;
+  final int longestStreak;  // Adding longest streak to the widget
 
-  const AnimatedStreakCard({super.key, required this.streakCount});
+  const AnimatedStreakCard({super.key, required this.streakCount, required this.longestStreak});
 
   @override
   _AnimatedStreakCardState createState() => _AnimatedStreakCardState();
@@ -36,10 +37,7 @@ class _AnimatedStreakCardState extends State<AnimatedStreakCard> with SingleTick
       curve: Curves.easeOut,
     ));
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
       parent: _controller,
       curve: Curves.easeIn,
     ));
@@ -55,6 +53,9 @@ class _AnimatedStreakCardState extends State<AnimatedStreakCard> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    // If current streak is 0, graying out the card
+    bool isStreakBroken = widget.streakCount == 0;
+
     return SlideTransition(
       position: _slideAnimation,
       child: FadeTransition(
@@ -64,11 +65,17 @@ class _AnimatedStreakCardState extends State<AnimatedStreakCard> with SingleTick
           margin: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF4A148C), Color(0xFF880E4F)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: isStreakBroken
+                ? const LinearGradient(
+                    colors: [Color(0xFFB0BEC5), Color(0xFF90A4AE)], // Gray gradient for broken streak
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [Color(0xFF4A148C), Color(0xFF880E4F)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             boxShadow: const [
               BoxShadow(
                 color: Colors.black45,
@@ -90,16 +97,22 @@ class _AnimatedStreakCardState extends State<AnimatedStreakCard> with SingleTick
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.orange.withOpacity(0.6),
+                          color: isStreakBroken
+                              ? Colors.grey.withOpacity(0.6)
+                              : Colors.orange.withOpacity(0.6),
                           blurRadius: _glowAnimation.value,
                           spreadRadius: 2,
                         ),
                       ],
-                      color: Colors.orange.withOpacity(0.2),
+                      color: isStreakBroken
+                          ? Colors.grey.withOpacity(0.2)
+                          : Colors.orange.withOpacity(0.2),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.local_fire_department,
-                      color: Colors.orangeAccent,
+                      color: isStreakBroken
+                          ? Colors.grey
+                          : Colors.orangeAccent,
                       size: 27,
                     ),
                   );
@@ -109,8 +122,10 @@ class _AnimatedStreakCardState extends State<AnimatedStreakCard> with SingleTick
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '🔥 Streak Alive!',
+                  Text(
+                    isStreakBroken
+                        ? '🔥 Streak Broken!'
+                        : '🔥 Streak Alive!',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -119,7 +134,9 @@ class _AnimatedStreakCardState extends State<AnimatedStreakCard> with SingleTick
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${widget.streakCount} days strong',
+                    isStreakBroken
+                        ? 'Start your streak today!'
+                        : '${widget.streakCount} days strong!',
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 14,

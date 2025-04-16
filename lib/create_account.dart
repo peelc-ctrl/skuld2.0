@@ -12,6 +12,7 @@ class CreateAccountPage extends StatefulWidget {
 class _CreateAccountPageState extends State<CreateAccountPage> {
   final _formKey = GlobalKey<FormState>();
   final nameController = TextEditingController();
+  final usernameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final password2Controller = TextEditingController(); // Password confirmation
@@ -20,45 +21,52 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   bool _termsAccepted = false; // To check if terms are accepted
 
   Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    final url = Uri.parse("http://127.0.0.1:8000/api/register/");
-    print("Attempting registration...");
+  final url = Uri.parse("http://127.0.0.1:8000/api/auth/register/");
+  print("Attempting registration...");
 
-    try {
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "name": nameController.text,
-          "email": emailController.text,
-          "password": passwordController.text,
-          "password2": password2Controller.text,
-          "tc": _termsAccepted ? "accepted" : "not_accepted",
-        }),
-      );
+  try {
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": emailController.text,
+        "name": nameController.text,
+        "username": usernameController.text,
+        "password": passwordController.text,
+        "password2": password2Controller.text,
+        "tc": _termsAccepted
+        //DO NOT CHANGE THE ORDER OF THIS IT WILL BREAK THE WHOLE PROJECT
+      }),
+    );
 
-      print("Status: ${response.statusCode}");
-      print("Body: ${response.body}");
+    print("Status: ${response.statusCode}");
+    print("Body: ${response.body}");
 
-      if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Account created")),
-        );
-        Navigator.pushNamed(context, '/login');
-      } else {
-        final data = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['error'] ?? "Registration failed")),
-        );
-      }
-    } catch (e) {
-      print("Error during registration: $e");
+    // Decode the response body as a map
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 201) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Connection error")),
+        SnackBar(content: Text("Account created")),
+      );
+      Navigator.pushNamed(context, '/login');
+    } else {
+      // Handle error response properly
+      final errorMessage = data['error']?['message'] ?? "Registration failed";
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
       );
     }
+  } catch (e) {
+    print("Error during registration: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Connection error")),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -79,9 +87,15 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
 
               // Name Field
               TextFormField(
+                controller: usernameController,
+                decoration: InputDecoration(labelText: "Username"),
+                validator: (v) => v!.isEmpty ? "Username is required" : null,
+              ),
+
+               TextFormField(
                 controller: nameController,
                 decoration: InputDecoration(labelText: "Full Name"),
-                validator: (v) => v!.isEmpty ? "Name is required" : null,
+                validator: (v) => v!.isEmpty ? "Username is required" : null,
               ),
 
               // Password Field

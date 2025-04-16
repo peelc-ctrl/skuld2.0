@@ -1,57 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'leaderboard_entry.dart';
+import 'leaderboard_service.dart';
+import 'auth_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LeaderboardPage extends StatefulWidget {
-  final String currentUsername; // Pass this from your login
-
-  const LeaderboardPage({super.key, required this.currentUsername});
+  const LeaderboardPage({super.key});
 
   @override
   _LeaderboardPageState createState() => _LeaderboardPageState();
 }
 
 class _LeaderboardPageState extends State<LeaderboardPage> {
-  List<dynamic> leaderboard = [];
-  Map<String, dynamic>? currentUser;
+  late Future<List<LeaderboardEntry>> leaderboardFuture;
 
   @override
   void initState() {
     super.initState();
-    fetchLeaderboard();
+    _loadTokenAndLeaderboard();
   }
 
-  Future<void> fetchLeaderboard() async {
-    final response = await http.get(Uri.parse('http://your-backend.com/api/leaderboard/'));
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      setState(() {
-        leaderboard = data;
-        final found = data.firstWhere(
-          (user) => user['username'] == widget.currentUsername,
-          orElse: () => {},
-        );
-        currentUser = found.isNotEmpty ? found : null;
-      });
+  // Method to load token and leaderboard
+  Future<void> _loadTokenAndLeaderboard() async {
+    final token = await AuthService().getAccessToken(); // Get the token from SharedPreferences
+    
+    if (token != null) {
+      // Fetch leaderboard if token is available
+      leaderboardFuture = LeaderboardService.fetchLeaderboard(token);
+      setState(() {}); // Refresh the UI after fetching leaderboard data
     } else {
-      throw Exception('Failed to load leaderboard');
-    }
-  }
-
-  Widget _buildMedalIcon(int rank) {
-    switch (rank) {
-      case 1:
-        return Icon(Icons.emoji_events, color: Colors.amber, size: 28);
-      case 2:
-        return Icon(Icons.emoji_events, color: Colors.grey, size: 24);
-      case 3:
-        return Icon(Icons.emoji_events, color: Colors.brown, size: 22);
-      default:
-        return CircleAvatar(
-          backgroundColor: Colors.deepPurple,
-          child: Text(rank.toString()),
-        );
+      // Handle the case where token is not available
+      print('No token found!');
     }
   }
 
@@ -59,54 +38,84 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Leaderboard'),
+        title: Text('LEADERBOARD',
+        style: GoogleFonts.germaniaOne(
+          color: Colors.white,
+          fontSize: 36,
+        )),
         backgroundColor: Colors.black,
+        centerTitle: true,
+        automaticallyImplyLeading: false // AppBar color
       ),
-      backgroundColor: Colors.black,
-      body: leaderboard.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: leaderboard.length,
-                    itemBuilder: (context, index) {
-                      final user = leaderboard[index];
-                      final rank = index + 1;
-                      final isCurrentUser = user['username'] == widget.currentUsername;
+      body: FutureBuilder<List<LeaderboardEntry>>(
+        future: leaderboardFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Failed to load leaderboard'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('No leaderboard data available.'));
+          }
 
-                      return Card(
-                        color: isCurrentUser ? Colors.deepPurple[200] : Colors.white10,
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                        child: ListTile(
-                          leading: _buildMedalIcon(rank),
-                          title: Text(
-                            user['username'],
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          trailing: Text(
-                            '${user['score']} pts',
-                            style: const TextStyle(color: Colors.amberAccent),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+          final leaderboard = snapshot.data!;
+          return ListView.builder(
+            itemCount: leaderboard.length,
+            itemBuilder: (context, index) {
+              final entry = leaderboard[index];
+              return Card(
+                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                elevation: 5,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                if (currentUser != null && !leaderboard.any((u) => u['username'] == widget.currentUsername))
-                  Container(
-                    color: Colors.deepPurple[300],
-                    padding: const EdgeInsets.all(12),
+                color: Color.fromARGB(179, 219, 204, 229),
+                child: ListTile(
+                  contentPadding: EdgeInsets.all(16),
+                  leading: CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Color.fromARGB(255, 93, 0, 100),
                     child: Text(
-                      'Your Rank: ${currentUser!['rank']} - ${currentUser!['score']} pts',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      '#${index + 1}',
+                      style: TextStyle(color: Color.fromARGB(230, 219, 204, 229), fontWeight: FontWeight.bold),
                     ),
                   ),
-              ],
-            ),
+                  title: Text(
+                    entry.user,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Points: ${entry.points}',
+                          style: TextStyle(
+                            color: const Color.fromARGB(190, 16, 101, 19),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Workouts: ${entry.workoutsCompleted}',
+                          style: TextStyle(
+                            color: const Color.fromARGB(179, 121, 61, 226),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skuld/profile_settings.dart';
 import 'landing_page.dart';
 import 'login.dart';
 import 'home_page.dart';
@@ -21,7 +22,8 @@ class MyApp extends StatelessWidget {
       '/login' : (context) => LoginPage(),
       '/createAccount' : (context) => CreateAccountPage(),
       '/landing' : (context) => LandingPage(),
-      '/home' : (context) => HomePage()
+      '/home' : (context) => HomePage(),
+      '/settings' : (context) => SettingsPage(),
     },
       title: 'My SKULD App',
       theme: ThemeData(

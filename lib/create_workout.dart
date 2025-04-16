@@ -1,280 +1,235 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'auth_service.dart';
 
-class AddWorkoutPage extends StatefulWidget {
-  const AddWorkoutPage({super.key});
+class CreateWorkoutPage extends StatefulWidget {
+  const CreateWorkoutPage({super.key});
 
   @override
-  State<AddWorkoutPage> createState() => _AddWorkoutPageState();
+  _CreateWorkoutPageState createState() => _CreateWorkoutPageState();
 }
 
-class _AddWorkoutPageState extends State<AddWorkoutPage> {
-  final List<Map<String, dynamic>> _exercises = [];
-  final _exerciseController = TextEditingController();
-  final _setsController = TextEditingController();
-  final _repsController = TextEditingController();
-  final _weightsController = TextEditingController();
-  
-  bool _isBodyweightExercise = false; // New field to track bodyweight status
+class _CreateWorkoutPageState extends State<CreateWorkoutPage> {
+  final _formKey = GlobalKey<FormState>();
+  String workoutName = '';
+  String notes = '';
+  List<WorkoutExerciseEntry> exercises = [WorkoutExerciseEntry()];
+  DateTime? startTime;
+  DateTime? endTime;
+  int caloriesBurned = 0;
 
-  DateTime _workoutDate = DateTime.now();
-
-  void _addExercise() {
-    if (_exerciseController.text.isEmpty ||
-        _setsController.text.isEmpty ||
-        _repsController.text.isEmpty ||
-        (!_isBodyweightExercise && _weightsController.text.isEmpty)) {
-      return;
-    }
-
-    final sets = int.tryParse(_setsController.text) ?? 0;
-    final weightsInput = _isBodyweightExercise
-        ? []
-        : _weightsController.text.split(',').map((w) => double.tryParse(w.trim())).toList();
-
-    if (!_isBodyweightExercise && (weightsInput.length != sets || weightsInput.contains(null))) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter valid weights for each set.")),
-      );
-      return;
-    }
-
-    setState(() {
-      _exercises.add({
-        'name': _exerciseController.text,
-        'sets': sets,
-        'reps': int.tryParse(_repsController.text) ?? 0,
-        'weights': weightsInput,
-        'isBodyweight': _isBodyweightExercise, // Store the bodyweight status
-      });
-
-      _exerciseController.clear();
-      _setsController.clear();
-      _repsController.clear();
-      _weightsController.clear();
-      _isBodyweightExercise = false; // Reset checkbox
-    });
+  void addExercise() {
+    setState(() => exercises.add(WorkoutExerciseEntry()));
   }
 
-void _submitWorkout() async {
-  final url = Uri.parse('http://192.168.1.84:8000/api/workouts/');
-
-  final workoutData = {
-    "date": _workoutDate.toIso8601String(),
-    "exercises": _exercises.map((exercise) => {
-      "name": exercise['name'],
-      "sets": exercise['sets'],
-      "reps": exercise['reps'],
-      "weights": exercise['weights'],
-      "is_bodyweight": exercise['isBodyweight'],
-    }).toList(),
-  };
-
-  final response = await http.post(
-    url,
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode(workoutData),
-  );
-
-  if (response.statusCode == 201) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Workout Submitted!")),
-    );
-    Navigator.pop(context);
-  } else {
-    print("Error: ${response.statusCode}");
-    print("Response body: ${response.body}");
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Failed to submit workout")),
-    );
+  void removeExercise(int index) {
+    setState(() => exercises.removeAt(index));
   }
-}
 
-
-  Future<void> _selectDateTime() async {
-    final DateTime? pickedDate = await showDatePicker(
+  Future<void> selectDateTime(BuildContext context, bool isStart) async {
+    final picked = await showDatePicker(
       context: context,
-      initialDate: _workoutDate,
-      firstDate: DateTime(2022),
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2023),
       lastDate: DateTime(2100),
     );
 
-    if (pickedDate != null) {
-      final TimeOfDay? pickedTime = await showTimePicker(
+    if (picked != null) {
+      final time = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay.fromDateTime(_workoutDate),
+        initialTime: TimeOfDay.now(),
       );
-
-      if (pickedTime != null) {
+      if (time != null) {
+        final dateTime = DateTime(picked.year, picked.month, picked.day, time.hour, time.minute);
         setState(() {
-          _workoutDate = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
+          if (isStart) {
+            startTime = dateTime;
+          } else {
+            endTime = dateTime;
+          }
         });
       }
     }
   }
 
-  @override
-  void dispose() {
-    _exerciseController.dispose();
-    _setsController.dispose();
-    _repsController.dispose();
-    _weightsController.dispose();
-    super.dispose();
+  void submitWorkout() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+
+      final workoutData = {
+        "name": workoutName,
+        "notes": notes,
+        "exercises": exercises.map((e) => e.toMap()).toList(),
+        "start_time": startTime?.toIso8601String(),
+        "end_time": endTime?.toIso8601String(),
+        "calories_burned": caloriesBurned,
+      };
+
+      print('Workout Payload: $workoutData');
+
+      final success = await AuthService.createWorkoutSession(
+        workoutName: workoutName,
+        notes: notes,
+        exercises: exercises.map((e) => e.toMap()).toList(),
+        startTime: startTime!,
+        endTime: endTime!,
+        caloriesBurned: caloriesBurned,
+      );
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Workout created!')),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to create workout')),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final String formattedDate = DateFormat('yMMMd – h:mm a').format(_workoutDate);
-
+    final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Add Workout"),
-        backgroundColor: Colors.black,
-      ),
-      backgroundColor: Colors.black,
+      appBar: AppBar(title: Text('Create Workout')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Workout Name'),
+                onSaved: (value) => workoutName = value ?? '',
+                validator: (value) => value!.isEmpty ? 'Enter workout name' : null,
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Notes'),
+                onSaved: (value) => notes = value ?? '',
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Calories Burned'),
+                keyboardType: TextInputType.number,
+                onSaved: (value) => caloriesBurned = int.tryParse(value!) ?? 0,
+              ),
+              ListTile(
+                title: Text('Start Time: ${startTime != null ? dateFormat.format(startTime!) : 'Select'}'),
+                trailing: Icon(Icons.calendar_today),
+                onTap: () => selectDateTime(context, true),
+              ),
+              ListTile(
+                title: Text('End Time: ${endTime != null ? dateFormat.format(endTime!) : 'Select'}'),
+                trailing: Icon(Icons.calendar_today),
+                onTap: () => selectDateTime(context, false),
+              ),
+              const SizedBox(height: 20),
+              ...exercises.asMap().entries.map((entry) {
+                final index = entry.key;
+                return ExerciseForm(
+                  entry: entry.value,
+                  onRemove: () => removeExercise(index),
+                );
+              }),
+              TextButton.icon(
+                icon: Icon(Icons.add),
+                label: Text('Add Exercise'),
+                onPressed: addExercise,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: submitWorkout,
+                child: Text('Create Workout'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class WorkoutExerciseEntry {
+  String name = '';
+  int sets = 3;
+  int reps = 10;
+  double? weight;
+  int rest = 60;
+
+  Map<String, dynamic> toMap() => {
+        "name": name,
+        "sets": sets,
+        "reps": reps,
+        "weight": weight,
+        "rest_time": rest,
+      };
+}
+
+class ExerciseForm extends StatelessWidget {
+  final WorkoutExerciseEntry entry;
+  final VoidCallback onRemove;
+
+  const ExerciseForm({super.key, required this.entry, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Workout Date:", style: TextStyle(color: Colors.white70, fontSize: 16)),
-                TextButton.icon(
-                  onPressed: _selectDateTime,
-                  icon: const Icon(Icons.calendar_today, color: Colors.white70),
-                  label: Text(formattedDate, style: const TextStyle(color: Colors.white)),
-                ),
-              ],
+            TextFormField(
+              decoration: InputDecoration(labelText: 'Exercise Name'),
+              onSaved: (value) => entry.name = value ?? '',
+              validator: (value) => value!.isEmpty ? 'Enter exercise name' : null,
             ),
-            const SizedBox(height: 10),
-
-            // Inputs
-            TextField(
-              controller: _exerciseController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: "Exercise Name",
-                labelStyle: TextStyle(color: Colors.white70),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _setsController,
+                  child: TextFormField(
+                    decoration: InputDecoration(labelText: 'Sets'),
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: "Sets",
-                      labelStyle: TextStyle(color: Colors.white70),
-                      border: OutlineInputBorder(),
-                    ),
+                    onSaved: (value) => entry.sets = int.tryParse(value!) ?? 3,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: TextField(
-                    controller: _repsController,
+                  child: TextFormField(
+                    decoration: InputDecoration(labelText: 'Reps'),
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: "Reps",
-                      labelStyle: TextStyle(color: Colors.white70),
-                      border: OutlineInputBorder(),
-                    ),
+                    onSaved: (value) => entry.reps = int.tryParse(value!) ?? 10,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-
-            // Weights input (Only if not bodyweight)
-            if (!_isBodyweightExercise) 
-              TextField(
-                controller: _weightsController,
-                keyboardType: TextInputType.text,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: "Weights per Set (comma separated)",
-                  labelStyle: TextStyle(color: Colors.white70),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-            const SizedBox(height: 12),
-
-            // Checkbox for bodyweight exercise
             Row(
               children: [
-                Checkbox(
-                  value: _isBodyweightExercise,
-                  onChanged: (value) {
-                    setState(() {
-                      _isBodyweightExercise = value ?? false;
-                    });
-                  },
+                Expanded(
+                  child: TextFormField(
+                    decoration: InputDecoration(labelText: 'Weight (kg)'),
+                    keyboardType: TextInputType.number,
+                    onSaved: (value) => entry.weight = double.tryParse(value!),
+                  ),
                 ),
-                const Text(
-                  'Bodyweight Exercise',
-                  style: TextStyle(color: Colors.white70),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    decoration: InputDecoration(labelText: 'Rest Time (s)'),
+                    keyboardType: TextInputType.number,
+                    onSaved: (value) => entry.rest = int.tryParse(value!) ?? 60,
+                  ),
                 ),
               ],
             ),
-
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _addExercise,
-              icon: const Icon(Icons.add),
-              label: const Text("Add Exercise"),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
-            ),
-
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _exercises.length,
-                itemBuilder: (context, index) {
-                  final exercise = _exercises[index];
-                  final weights = exercise['weights'].isEmpty
-                      ? 'Bodyweight' 
-                      : exercise['weights'].join(', ');
-                  return Card(
-                    color: Colors.deepPurple.shade800,
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: ListTile(
-                      title: Text(
-                        exercise['name'],
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        "${exercise['sets']} sets x ${exercise['reps']} reps\nWeights: $weights",
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                    ),
-                  );
-                },
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                onPressed: onRemove,
+                icon: Icon(Icons.delete, color: Colors.red),
               ),
-            ),
-
-            ElevatedButton(
-              onPressed: _submitWorkout,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orangeAccent,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 30),
-              ),
-              child: const Text("Finish Workout"),
-            ),
+            )
           ],
         ),
       ),
