@@ -81,7 +81,7 @@ class _HomePageState extends State<HomePage> {
   List<Widget> get _pages {
     return [
       LeaderboardPage(),
-      FindFriendsPage(),
+      FriendsPage(),
       Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

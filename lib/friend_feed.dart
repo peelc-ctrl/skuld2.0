@@ -5,14 +5,14 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 import 'follow_service.dart';
 
-class FindFriendsPage extends StatefulWidget {
-  const FindFriendsPage({super.key});
+class FriendsPage extends StatefulWidget {
+  const FriendsPage({super.key});
 
   @override
-  _FindFriendsPageState createState() => _FindFriendsPageState();
+  _FriendsPageState createState() => _FriendsPageState();
 }
 
-class _FindFriendsPageState extends State<FindFriendsPage> {
+class _FriendsPageState extends State<FriendsPage> {
   final TextEditingController _controller = TextEditingController();
   List<dynamic> _searchResults = [];
   List<dynamic> _incomingRequests = [];
@@ -131,26 +131,63 @@ class _FindFriendsPageState extends State<FindFriendsPage> {
     }
   }
 
-Widget _buildActionButton(String username, String status) {
-  switch (status) {
-    case 'following':
-      return ElevatedButton(
-        onPressed: () => _handleUnfollow(username),
-        child: Text('Unfollow'),
-      );
-    case 'requested':
-      return ElevatedButton(
-        onPressed: null, // Disabled state for requested follow
-        child: Text('Requested'),
-      );
-    default:
-      return ElevatedButton(
-        onPressed: () => _handleFollow(username),
-        child: Text('Follow'),
-      );
+  Widget _buildActionButton(String username, String status) {
+    switch (status) {
+      case 'following':
+        return ElevatedButton(
+          onPressed: () => _handleUnfollow(username),
+          child: Text('Unfollow'),
+        );
+      case 'requested':
+        return ElevatedButton(
+          onPressed: null, // Disabled state for requested follow
+          child: Text('Requested'),
+        );
+      default:
+        return ElevatedButton(
+          onPressed: () => _handleFollow(username),
+          child: Text('Follow'),
+        );
+    }
   }
-}
 
+  final List<Map<String, dynamic>> _posts = [
+    {
+      'username': 'KyoujuroRengoku',
+      'profilePic': 'assets/rengoku.jpg',
+      'workoutType': 'Deadlift',
+      'workoutDetails': 'Hit a new PR today! Deadlift 200kg!',
+      'comments': [
+        {'user': 'ZenitsuAgatsuma', 'comment': 'You got this, Flame Hashira! Keep it up!'},
+        {'user': 'InosukeHashibira', 'comment': 'Not bad, but I can lift more!'},
+      ],
+      'skolCount': 5,
+      'timestamp': '2025-04-15 10:00 AM',
+    },
+    {
+      'username': 'ZenitsuAgatsuma',
+      'profilePic': 'assets/zenitsu.jpg',
+      'workoutType': 'Push-Ups',
+      'workoutDetails': 'Maxed out on push-ups today. 100 in a row!',
+      'comments': [
+        {'user': 'KyoujuroRengoku', 'comment': 'Impressive! Well done, Zenitsu!'},
+      ],
+      'skolCount': 3,
+      'timestamp': '2025-04-14 8:30 AM',
+    },
+    {
+      'username': 'InosukeHashibira',
+      'profilePic': 'assets/inosuke.jpg',
+      'workoutType': 'Squats',
+      'workoutDetails': 'Crushed squats today! 150kg on my back!',
+      'comments': [
+        {'user': 'ZenitsuAgatsuma', 'comment': 'How do you squat that much? I am amazed!'},
+        {'user': 'KyoujuroRengoku', 'comment': 'That’s insane, Inosuke!'},
+      ],
+      'skolCount': 8,
+      'timestamp': '2025-04-13 9:45 AM',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -190,39 +227,38 @@ Widget _buildActionButton(String username, String status) {
             if (_incomingRequests.isNotEmpty) ...[
               Text('Follow Requests', style: TextStyle(fontWeight: FontWeight.bold)),
               ListView.builder(
-  shrinkWrap: true,
-  physics: NeverScrollableScrollPhysics(),
-  itemCount: _incomingRequests.length,
-  itemBuilder: (context, index) {
-    final request = _incomingRequests[index];
-    final fromUser = request['from_user']['username'];
-    final requestId = request['id'];
-    final profilePicture = request['from_user']['profile_picture'];
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: _incomingRequests.length,
+                itemBuilder: (context, index) {
+                  final request = _incomingRequests[index];
+                  final fromUser = request['from_user']['username'];
+                  final requestId = request['id'];
+                  final profilePicture = request['from_user']['profile_picture'];
 
-    return ListTile(
-      leading: profilePicture != null
-          ? CircleAvatar(
-              backgroundImage: NetworkImage(profilePicture),
-            )
-          : CircleAvatar(child: Icon(Icons.account_circle)),
-      title: Text(fromUser),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: Icon(Icons.check, color: Colors.green),
-            onPressed: () => _acceptFollowRequest(requestId),
-          ),
-          IconButton(
-            icon: Icon(Icons.close, color: Colors.red),
-            onPressed: () => _rejectFollowRequest(requestId),
-          ),
-        ],
-      ),
-    );
-  },
-),
-
+                  return ListTile(
+                    leading: profilePicture != null
+                        ? CircleAvatar(
+                            backgroundImage: NetworkImage(profilePicture),
+                          )
+                        : CircleAvatar(child: Icon(Icons.account_circle)),
+                    title: Text(fromUser),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.check, color: Colors.green),
+                          onPressed: () => _acceptFollowRequest(requestId),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: Colors.red),
+                          onPressed: () => _rejectFollowRequest(requestId),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
               Divider(),
             ],
 
@@ -233,31 +269,74 @@ Widget _buildActionButton(String username, String status) {
               Text(_error, style: TextStyle(color: Colors.red))
             else
               Expanded(
-  child: ListView.builder(
-    itemCount: _searchResults.length,
-    itemBuilder: (context, index) {
-      final user = _searchResults[index];
-      final username = user['username'];
-      final status = _followStatus[username] ?? 'not_following';
-      final profilePicture = user['profile_picture'];
+                child: ListView.builder(
+                  itemCount: _searchResults.length,
+                  itemBuilder: (context, index) {
+                    final user = _searchResults[index];
+                    final username = user['username'];
+                    final status = _followStatus[username] ?? 'not_following';
+                    final profilePicture = user['profile_picture'];
 
-      return ListTile(
-        leading: profilePicture != null
-            ? CircleAvatar(
-                backgroundImage: NetworkImage(profilePicture),
-              )
-            : CircleAvatar(child: Icon(Icons.account_circle)),
-        title: Text(username),
-        subtitle: Text('${user['first_name'] ?? ''} ${user['last_name'] ?? ''}'),
-        trailing: _buildActionButton(username, status), // Call to _buildActionButton here
-      );
-    },
-  ),
-),
+                    return ListTile(
+                      leading: profilePicture != null
+                          ? CircleAvatar(
+                              backgroundImage: NetworkImage(profilePicture),
+                            )
+                          : CircleAvatar(child: Icon(Icons.account_circle)),
+                      title: Text(username),
+                      subtitle: Text('${user['first_name'] ?? ''} ${user['last_name'] ?? ''}'),
+                      trailing: _buildActionButton(username, status), // Follow button
+                    );
+                  },
+                ),
+              ),
+            Divider(),
 
+            // Friends Feed Section
+            Text('Friends Feed', style: TextStyle(fontWeight: FontWeight.bold)),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _posts.length,
+                itemBuilder: (context, index) {
+                  final post = _posts[index];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: AssetImage(post['profilePic']),
+                    ),
+                    title: Text(post['username']),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(post['workoutType']),
+                        Text(post['workoutDetails']),
+                        Row(
+                          children: [
+                            Icon(Icons.access_time),
+                            SizedBox(width: 4),
+                            Text(post['timestamp']),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text('Skol: ${post['skolCount']}'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(Icons.thumb_up),
+                      onPressed: () {},
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+
+

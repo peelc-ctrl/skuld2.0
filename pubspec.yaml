@@ -38,6 +38,7 @@ dependencies:
   mime: ^2.0.0
   path: ^1.8.2
   http_parser: ^4.0.0
+  fl_chart: ^0.66.0
 
 
   # The following adds the Cupertino Icons font to your application.

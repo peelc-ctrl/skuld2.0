@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'auth_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:http_parser/http_parser.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
